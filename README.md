@@ -1,0 +1,1 @@
+Testing sills for the course AI Formation from [ai-driven-development](https://www.formacao.dev/ai-driven-development)
