@@ -12,6 +12,12 @@
 // it in AppModule, and replaces the generated controller with
 // ../assets/backend-module-template/controller.ts (GET /<name> -> default message).
 //
+// In the frontend (Next.js) it copies ../assets/frontend-module-template into
+// apps/frontend/src (placeholders also replaced in file/folder names):
+//   app/(private)/<name>/page.tsx                  -> private route /<name>
+//   modules/<name>/pages/<name>.page.tsx           -> module main page
+//   modules/<name>/components/<name>.component.tsx -> module main component
+//
 // Usage:
 //   node create-module.mjs --name <module-name> --namespace <@scope> [--cwd <dir>]
 //
@@ -38,6 +44,8 @@ const BACKEND_DIR = 'apps/backend';
 // Files the Nest CLI reads (config) or edits (app.module.ts) when generating the module.
 const NEST_SANDBOX_FILES = ['package.json', 'nest-cli.json', 'tsconfig.json', 'tsconfig.build.json', 'src/app.module.ts'];
 const BACKEND_CONTROLLER_TEMPLATE = path.resolve(SCRIPT_DIR, '..', 'assets', 'backend-module-template', 'controller.ts');
+const FRONTEND_DIR = 'apps/frontend';
+const FRONTEND_TEMPLATE_DIR = path.resolve(SCRIPT_DIR, '..', 'assets', 'frontend-module-template');
 const endpointMessage = (moduleName) => `Hello from the ${moduleName} module!`;
 const HTTP_TIMEOUT_MS = 60_000;
 
@@ -45,7 +53,7 @@ const HTTP_TIMEOUT_MS = 60_000;
 // Helpers
 // ---------------------------------------------------------------------------
 
-const TOTAL_STEPS = 10;
+const TOTAL_STEPS = 11;
 let stepNo = 0;
 function step(msg) {
   stepNo += 1;
@@ -130,8 +138,10 @@ function copyTemplate(srcDir, destDir, replacements) {
   const created = [];
   for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
     if (IGNORED_TEMPLATE_ENTRIES.has(entry.name)) continue;
+    let destName = entry.name;
+    for (const [placeholder, value] of replacements) destName = destName.split(placeholder).join(value);
     const src = path.join(srcDir, entry.name);
-    const dest = path.join(destDir, entry.name);
+    const dest = path.join(destDir, destName);
     if (entry.isDirectory()) {
       created.push(...copyTemplate(src, dest, replacements));
     } else {
@@ -143,6 +153,23 @@ function copyTemplate(srcDir, destDir, replacements) {
   }
   return created;
 }
+
+// Lists the destination paths copyTemplate would create, without writing anything.
+function templateTargets(srcDir, destDir, replacements) {
+  const targets = [];
+  for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
+    if (IGNORED_TEMPLATE_ENTRIES.has(entry.name)) continue;
+    let destName = entry.name;
+    for (const [placeholder, value] of replacements) destName = destName.split(placeholder).join(value);
+    const dest = path.join(destDir, destName);
+    if (entry.isDirectory()) targets.push(...templateTargets(path.join(srcDir, entry.name), dest, replacements));
+    else targets.push(dest);
+  }
+  return targets;
+}
+
+// auth -> Auth, user-profile -> UserProfile (used for the React component names).
+const toPascalCase = (name) => name.split(/[._-]+/).filter(Boolean).map((part) => part[0].toUpperCase() + part.slice(1)).join('');
 
 // ---------------------------------------------------------------------------
 // Main
@@ -157,11 +184,12 @@ const namespace = args.namespace.startsWith('@') ? args.namespace : `@${args.nam
 if (!/^@[a-z0-9][a-z0-9._-]*$/.test(namespace)) fail(`Invalid namespace "${namespace}": use lowercase a-z 0-9 . _ -`);
 if (!args.name) fail('--name is required (e.g. --name auth). Nothing was changed.');
 const moduleName = args.name;
-if (!/^[a-z0-9][a-z0-9._-]*$/.test(moduleName)) fail(`Invalid module name "${moduleName}": use lowercase a-z 0-9 . _ -`);
+if (!/^[a-z][a-z0-9._-]*$/.test(moduleName)) fail(`Invalid module name "${moduleName}": use lowercase a-z 0-9 . _ - and start with a letter`);
 const packageName = `${namespace}/${moduleName}`;
 
 if (!fs.existsSync(TEMPLATE_DIR)) fail(`Template not found: ${TEMPLATE_DIR}`);
 if (!fs.existsSync(BACKEND_CONTROLLER_TEMPLATE)) fail(`Template not found: ${BACKEND_CONTROLLER_TEMPLATE}`);
+if (!fs.existsSync(FRONTEND_TEMPLATE_DIR)) fail(`Template not found: ${FRONTEND_TEMPLATE_DIR}`);
 const rootPkgFile = path.join(root, 'package.json');
 if (!fs.existsSync(rootPkgFile)) fail(`No package.json in ${root}: run this at the monorepo root.`);
 const appPkgFiles = CONSUMER_APPS.map((app) => path.join(root, app, 'package.json'));
@@ -177,6 +205,15 @@ if (!fs.existsSync(path.join(backendDir, 'nest-cli.json'))) fail(`Missing ${BACK
 const backendModuleRel = `${BACKEND_DIR}/src/modules/${moduleName}`;
 const backendModuleDir = path.join(root, backendModuleRel);
 if (fs.existsSync(backendModuleDir)) fail(`${backendModuleRel} already exists. Nothing was changed.`);
+const frontendSrcDir = path.join(root, FRONTEND_DIR, 'src');
+if (!fs.existsSync(path.join(frontendSrcDir, 'app'))) fail(`Missing ${FRONTEND_DIR}/src/app: the frontend must be a Next.js App Router app.`);
+const frontendReplacements = [
+  ['__MODULE_NAME__', moduleName],
+  ['__COMPONENT_NAME__', toPascalCase(moduleName)],
+];
+for (const target of templateTargets(FRONTEND_TEMPLATE_DIR, frontendSrcDir, frontendReplacements)) {
+  if (fs.existsSync(target)) fail(`${path.relative(root, target)} already exists. Nothing was changed.`);
+}
 if (!fs.existsSync(path.join(root, 'packages', 'typescript-config', 'base.json'))) {
   fail('packages/typescript-config/base.json not found: the module tsconfig extends it.');
 }
@@ -284,6 +321,9 @@ ok(path.relative(root, nestModuleFile));
 ok(`${path.relative(root, controllerFile)} (GET /${route} -> "${message}")`);
 ok(`${moduleClass} registered in AppModule imports`);
 
+step(`Create the frontend route and module files in ${FRONTEND_DIR}/src`);
+for (const file of copyTemplate(FRONTEND_TEMPLATE_DIR, frontendSrcDir, frontendReplacements)) ok(path.relative(root, file));
+
 step('Build the project (npm run build)');
 run('npm', ['run', 'build'], root);
 if (!fs.existsSync(path.join(moduleDir, 'dist', 'index.js'))) fail(`modules/${moduleName}/dist/index.js was not generated.`);
@@ -292,6 +332,9 @@ const backendMain = path.join(backendDir, 'dist', 'main.js');
 const builtController = path.join(backendDir, 'dist', 'modules', moduleName, `${moduleName}.controller.js`);
 if (!fs.existsSync(builtController)) fail(`${path.relative(root, builtController)} was not generated.`);
 ok(`${BACKEND_DIR}/dist/modules/${moduleName} generated`);
+const builtPage = path.join(root, FRONTEND_DIR, '.next', 'server', 'app', '(private)', moduleName, 'page.js');
+if (!fs.existsSync(builtPage)) fail(`${path.relative(root, builtPage)} was not generated.`);
+ok(`${FRONTEND_DIR} route /${moduleName} built`);
 
 step(`Run the module tests (npm test -w ${packageName})`);
 run('npm', ['test', '-w', packageName], root);
@@ -315,4 +358,5 @@ step('Summary');
 ok(`Module ${packageName} created at modules/${moduleName}`);
 ok(`Dependency added to ${CONSUMER_APPS.join(' and ')}`);
 ok(`NestJS module ${moduleClass} at ${backendModuleRel}, registered in AppModule, endpoint GET /${route}`);
+ok(`Frontend private route /${moduleName} at ${FRONTEND_DIR}/src/app/(private)/${moduleName}, module files at ${FRONTEND_DIR}/src/modules/${moduleName}`);
 ok('Install, build, tests and endpoint check succeeded');
