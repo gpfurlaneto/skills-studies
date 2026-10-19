@@ -1,0 +1,4 @@
+interface:
+  display_name: "Backend Nest Config"
+  short_description: "Shared NestJS error handling, JWT auth and decorators"
+  default_prompt: "Configure the shared NestJS backend layer in apps/backend/src/shared: a global exception filter built on the packages/shared error hierarchy with a standardized error response, a JWT guard, an @Auth() decorator, a @CurrentUser() decorator and auxiliary types, then wire them into main.ts and AppModule and remove manual error handling from controllers."

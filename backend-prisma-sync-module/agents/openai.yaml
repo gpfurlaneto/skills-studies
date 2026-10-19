@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Backend Sync Module Prisma'
+  short_description: 'Synchronize a module''s entities with Prisma schema and migrations'
+  default_prompt: 'Analyze a module in modules/, identify the entities that extend Entity, create or update the module''s Prisma file in the backend, generate an incremental migration named after the module, apply the migration, and keep Prisma synchronized with the domain.'

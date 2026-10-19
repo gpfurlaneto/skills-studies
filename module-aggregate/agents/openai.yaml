@@ -1,0 +1,4 @@
+interface:
+  display_name: "Module Aggregate"
+  short_description: "Scaffold the standard model/provider/usecase structure of an aggregate inside an existing module"
+  default_prompt: "Create the standard structure of an aggregate inside an existing business module in modules/<module>: confirm the module, the aggregate name and the use case scenario (crud or example), run scripts/scaffold-aggregate.mjs to generate model/<aggregate>.entity.ts, provider/<aggregate>.repository.ts, the use case skeletons and every index.ts from the skill templates, check that src/index.ts exports the new aggregate and that the module still compiles. Do not implement business rules or infrastructure."

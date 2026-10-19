@@ -1,0 +1,4 @@
+interface:
+  display_name: "Backend Prisma Repository"
+  short_description: "Implement a Prisma repository in the backend from an interface"
+  default_prompt: "Use $backend-prisma-repository to explicitly receive a domain repository interface, infer the module from the path, create the *.prisma.ts file directly at the root of the backend module by default, register DbModule and PrismaService in the Nest module, and inject the concrete Prisma class in the backend without requiring a symbol by default."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Module Entity"
+  short_description: "Create or complete a lazy-validated domain entity and its 100%-covered unit test inside a module"
+  default_prompt: "Create or complete a domain entity inside an existing module in modules/<module>: confirm the module, the aggregate (name or path), the entity name and the typed fields, read the User entity, its test, the shared Entity, Validator and validation rules, infer the validation rules of each field from shared rules (references/rule-inference.md), run scripts/scaffold-entity.mjs to generate <entity>.entity.ts (State interface extending EntityState, class extending Entity, constructor that only calls super, getters, explicit validate() with Validator.validate) and <entity>.entity.test.ts, fill the rules and tests, then run scripts/verify-entity.mjs until the entity has 100% coverage and the module suite passes. Do not create repositories, use cases, controllers or Prisma files."

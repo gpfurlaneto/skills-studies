@@ -1,0 +1,4 @@
+interface:
+  display_name: "Shared Validation Rule"
+  short_description: "Create a reusable validation rule with 100%-covered tests in packages/shared"
+  default_prompt: "Create a reusable validation rule in packages/shared/src/validation/rules following the existing pattern: read the validation contracts, rule.utils and the reference rules/tests, scaffold it with scripts/scaffold-rule.mjs (name, error code, value type, params, empty handling), implement it reusing rule.utils helpers, write the unit test in packages/shared/test/validation/rules, export it from rules/index.ts and run scripts/verify-rule.mjs until coverage of the new rule is 100%."

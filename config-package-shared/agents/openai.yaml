@@ -1,0 +1,4 @@
+interface:
+  display_name: "Config Package Shared"
+  short_description: "Rebuild the shared base package of the monorepo"
+  default_prompt: "Rebuild packages/shared from the snapshot bundled in this skill (contracts, base classes, domain errors, use cases and validations), rename it from @temp/shared to the scope detected in the monorepo, add \"@<scope>/shared\": \"*\" to apps/* and modules/*, run npm i and validate with npx turbo run build --filter=@<scope>/shared."
